@@ -22,10 +22,12 @@ var (
 	nilContext = trace.SpanContext{}
 )
 
+// Propagator serializes Span Context to/from Datadog APM traces headers.
 type Propagator struct{}
 
 var _ propagation.TextMapPropagator = &Propagator{}
 
+// Inject injects a context to the carreir following Datadog APM traces format.
 func (Propagator) Inject(ctx context.Context, carrier propagation.TextMapCarrier) {
 	sc := trace.SpanFromContext(ctx).SpanContext()
 	traceID := sc.TraceID()
@@ -42,6 +44,7 @@ func (Propagator) Inject(ctx context.Context, carrier propagation.TextMapCarrier
 	carrier.Set(keyParentID, otelToDD(spanID.String()))
 }
 
+// Extract gets a context from the carrier if it contains Datadog APM traces headers.
 func (Propagator) Extract(ctx context.Context, carrier propagation.TextMapCarrier) context.Context {
 	sc, err := extractSpanContext(
 		carrier.Get(keyTraceID),
@@ -54,6 +57,7 @@ func (Propagator) Extract(ctx context.Context, carrier propagation.TextMapCarrie
 	return trace.ContextWithRemoteSpanContext(ctx, sc)
 }
 
+// Fields returns a list of fields used by HTTPTextFormat.
 func (Propagator) Fields() []string {
 	return []string{keyTraceID, keyParentID, keyPriority}
 }
