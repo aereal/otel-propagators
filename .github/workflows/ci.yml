@@ -1,0 +1,26 @@
+---
+
+name: CI
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+jobs:
+  test:
+    strategy:
+      matrix:
+        component:
+          - datadog
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: ${{ matrix.component }}/go.mod
+          cache: true
+          cache-dependency-path: ${{ matrix.component }}/go.sum
+      - name: test
+        working-directory: ${{ matrix.component }}
+        run: go test -v -race ./...
+
