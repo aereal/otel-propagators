@@ -40,8 +40,8 @@ func (Propagator) Inject(ctx context.Context, carrier propagation.TextMapCarrier
 		isSampled = samplingYes
 	}
 	carrier.Set(keyPriority, isSampled)
-	carrier.Set(keyTraceID, otelToDD(traceID.String()))
-	carrier.Set(keyParentID, otelToDD(spanID.String()))
+	carrier.Set(keyTraceID, ToDatadogID(traceID.String()))
+	carrier.Set(keyParentID, ToDatadogID(spanID.String()))
 }
 
 // Extract gets a context from the carrier if it contains Datadog APM traces headers.
@@ -62,22 +62,26 @@ func (Propagator) Fields() []string {
 	return []string{keyTraceID, keyParentID, keyPriority}
 }
 
-func otelToDD(id string) string {
-	if len(id) < datadogIDBase {
+// ToDatadogID converts the ID that comes from OpenTelemetry SDK to Datadog ID.
+func ToDatadogID(otelID string) string {
+	if len(otelID) < datadogIDBase {
 		return ""
 	}
-	if len(id) > datadogIDBase {
-		id = id[datadogIDBase:]
+	if len(otelID) > datadogIDBase {
+		otelID = otelID[datadogIDBase:]
 	}
-	iv, err := strconv.ParseUint(id, datadogIDBase, 64)
+	iv, err := strconv.ParseUint(otelID, datadogIDBase, 64)
 	if err != nil {
 		return ""
 	}
 	return strconv.FormatUint(iv, 10)
 }
 
-func ddToOtel(id string) (string, error) {
-	uv, err := strconv.ParseUint(id, 10, 64)
+// ToOpenTelemetryID converts the ID that comes from Datadog APM traces to OpenTelemetry ID.
+//
+// It may fail if the ID has invalid format.
+func ToOpenTelemetryID(ddID string) (string, error) {
+	uv, err := strconv.ParseUint(ddID, 10, 64)
 	if err != nil {
 		return "", err
 	}
@@ -87,7 +91,7 @@ func ddToOtel(id string) (string, error) {
 func extractSpanContext(traceID, spanID, sampled string) (trace.SpanContext, error) {
 	cfg := trace.SpanContextConfig{}
 
-	parsedTraceID, err := ddToOtel(traceID)
+	parsedTraceID, err := ToOpenTelemetryID(traceID)
 	if err != nil {
 		return nilContext, fmt.Errorf("invalid trace ID: %w", err)
 	}
@@ -99,7 +103,7 @@ func extractSpanContext(traceID, spanID, sampled string) (trace.SpanContext, err
 		return nilContext, fmt.Errorf("invalid trace ID: %w", err)
 	}
 
-	parsedSpanID, err := ddToOtel(spanID)
+	parsedSpanID, err := ToOpenTelemetryID(spanID)
 	if err != nil {
 		return nilContext, fmt.Errorf("invalid span ID: %w", err)
 	}
