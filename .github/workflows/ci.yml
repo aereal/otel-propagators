@@ -7,17 +7,31 @@ on:
     branches:
       - main
 jobs:
+  ok:
+    runs-on: ubuntu-24.04
+    permissions: {}
+    needs:
+      - test
+    if: failure()
+    steps:
+      - run: exit 1
   test:
+    name: 'test (Component: ${{ matrix.component }}; Go: ${{ matrix.go-version }})'
     strategy:
       matrix:
         component:
           - datadog
-    runs-on: ubuntu-latest
+        go-version:
+          - stable
+          - oldstable
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
-          go-version-file: ${{ matrix.component }}/go.mod
+          go-version: ${{ matrix.go-version }}
           cache: true
           cache-dependency-path: ${{ matrix.component }}/go.sum
       - name: test
