@@ -16,7 +16,7 @@ jobs:
     steps:
       - run: exit 1
   test:
-    name: 'test (Component: ${{ matrix.component }}; Go: ${{ matrix.go-versino }})'
+    name: 'test (Component: ${{ matrix.component }}; Go: ${{ matrix.go-version }})'
     strategy:
       matrix:
         component:
